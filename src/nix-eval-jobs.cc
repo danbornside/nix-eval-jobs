@@ -209,11 +209,10 @@ struct Drv {
         if (drvInfo.querySystem() == "unknown")
             throw EvalError("derivation must have a 'system' attribute");
 
-        auto localStore = state.store.dynamic_pointer_cast<LocalFSStore>();
 
         for (auto out : drvInfo.queryOutputs(true)) {
             if (out.second)
-                outputs[out.first] = localStore->printStorePath(*out.second);
+                outputs[out.first] = state.store->printStorePath(*out.second);
         }
 
         if (myArgs.meta) {
@@ -236,12 +235,12 @@ struct Drv {
             meta = meta_;
         }
         if (myArgs.checkCacheStatus) {
-            isCached = queryIsCached(*localStore, outputs);
+            isCached = queryIsCached(*state.store, outputs);
         }
 
         name = drvInfo.queryName();
         system = drvInfo.querySystem();
-        drvPath = localStore->printStorePath(drvInfo.requireDrvPath());
+        drvPath = state.store->printStorePath(drvInfo.requireDrvPath());
     }
 };
 
@@ -314,8 +313,10 @@ static void worker(EvalState &state, Bindings &autoArgs, AutoCloseFD &to,
                                 state.store
                                     .dynamic_pointer_cast<LocalFSStore>();
                             auto storePath =
-                                localStore->parseStorePath(drv.drvPath);
-                            localStore->addPermRoot(storePath, root);
+                                state.store->parseStorePath(drv.drvPath);
+                            if (localStore != nullptr) {
+                              localStore->addPermRoot(storePath, root);
+                            }
                         }
                     }
                 } else {
